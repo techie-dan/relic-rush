@@ -1,0 +1,8 @@
+{
+  "leaderboard": {
+    "stats": [
+      { "key": "relics", "label": "Relics", "order": "highest" },
+      { "key": "time", "label": "Time left", "order": "highest", "format": "time" }
+    ]
+  }
+}

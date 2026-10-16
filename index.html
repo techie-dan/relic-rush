@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Relic Rush · start.ng</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./src/styles.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+
+    <div class="hud" id="hud" hidden>
+      <div class="top">
+        <div class="card" id="player-card">
+          <img id="player-face" alt="">
+          <div>
+            <b id="player-name">Guest</b>
+            <span id="player-account">Not signed in</span>
+          </div>
+          <button id="player-sign-in" type="button" hidden>Sign in</button>
+        </div>
+        <div class="stats">
+          <div class="pill" id="relic-count">Relics 0 / 10</div>
+          <div class="pill" id="time-left">1:15</div>
+        </div>
+      </div>
+      <div class="hint">WASD to run · drag to look · Shift to sprint · collect every relic</div>
+    </div>
+
+    <div class="overlay" id="overlay">
+      <div class="panel">
+        <h1 id="title">Relic Rush</h1>
+        <p id="message">Loading your start.ng character…</p>
+        <div class="actions">
+          <button class="btn" id="play" type="button" hidden>Play</button>
+          <button class="btn ghost" id="signin" type="button" hidden>Sign in with start.ng</button>
+        </div>
+        <p class="save-note" id="save-note"></p>
+        <ol id="board"></ol>
+      </div>
+    </div>
+
+    <script type="module" src="./src/game.js"></script>
+  </body>
+</html>
