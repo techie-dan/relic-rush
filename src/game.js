@@ -399,6 +399,7 @@ ui.play.addEventListener('click', startRound);
 ui.signin.addEventListener('click', platform.signIn);
 
 async function boot() {
+  platform.storeSessionFromHash();
   spawnHuman();
   showOverlay('Relic Rush', 'Finding who’s playing…');
   const next = await platform.whoami();

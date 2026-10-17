@@ -25,6 +25,24 @@ export const DEFAULT_GUEST = {
   face: '',
 };
 
+export const GAME = location.hostname.endsWith('.start.ng')
+  ? location.hostname.split('.')[0]
+  : null;
+
+export function storeSessionFromHash() {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const session = params.get('startng_session');
+  if (session) {
+    sessionStorage.setItem('startng_session', session);
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  return session;
+}
+
+export function getSession() {
+  return sessionStorage.getItem('startng_session');
+}
+
 let frame;
 
 function connectFrame() {
@@ -67,13 +85,32 @@ async function askStartNg(message, replyType, timeoutMs = 5000) {
 
 /** { user, guest } — user is null when signed out. */
 export async function whoami() {
-  if (!START_NG) return { user: null, guest: DEFAULT_GUEST };
-  const reply = await askStartNg({ type: 'startng:whoami' }, 'startng:user');
-  if (!reply) return { user: null, guest: DEFAULT_GUEST };
-  return {
-    user: reply.user ?? null,
-    guest: reply.guest ?? DEFAULT_GUEST,
-  };
+  // Prefer the connect page (postMessage) on *.start.ng.
+  if (START_NG) {
+    const reply = await askStartNg({ type: 'startng:whoami' }, 'startng:user');
+    if (reply) {
+      return {
+        user: reply.user ?? null,
+        guest: reply.guest ?? DEFAULT_GUEST,
+      };
+    }
+  }
+  // Fall back to the HTTP API with a game session (works on mobile where
+  // hidden iframes / postMessage can be blocked).
+  const session = getSession();
+  if (session && GAME) {
+    try {
+      const res = await fetch(`https://api.start.ng/games/${GAME}/player`, {
+        headers: { Authorization: `Bearer ${session}` },
+      });
+      if (res.ok) {
+        const player = await res.json();
+        return { user: player, guest: DEFAULT_GUEST };
+      }
+      if (res.status === 401) sessionStorage.removeItem('startng_session');
+    } catch {}
+  }
+  return { user: null, guest: DEFAULT_GUEST };
 }
 
 export function onUserChange(fn) {
@@ -87,12 +124,50 @@ export function onUserChange(fn) {
 }
 
 export async function saveScore(stats) {
-  return askStartNg({ type: 'startng:score', stats }, 'startng:scoreSaved');
+  // Prefer the connect page (postMessage) on *.start.ng.
+  if (START_NG) {
+    const saved = await askStartNg({ type: 'startng:score', stats }, 'startng:scoreSaved');
+    if (saved) return saved;
+  }
+  // Fall back to the HTTP API with a game session (works on mobile).
+  const session = getSession();
+  if (session && GAME) {
+    try {
+      const res = await fetch(`https://api.start.ng/games/${GAME}/scores`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session}`,
+        },
+        body: JSON.stringify({ stats }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        return { ok: true, result: saved };
+      }
+      if (res.status === 401) {
+        sessionStorage.removeItem('startng_session');
+        return { ok: false, error: 'Sign in to save your score' };
+      }
+    } catch {}
+  }
+  return { ok: false, error: 'Sign in to save your score' };
 }
 
 export async function getLeaderboard(limit = 10) {
-  const reply = await askStartNg({ type: 'startng:leaderboard', limit }, 'startng:leaderboardData');
-  return reply?.ok ? reply.entries : [];
+  // Prefer the connect page (postMessage) on *.start.ng.
+  if (START_NG) {
+    const reply = await askStartNg({ type: 'startng:leaderboard', limit }, 'startng:leaderboardData');
+    if (reply?.ok) return reply.entries;
+  }
+  // Fall back to the HTTP API (no auth needed to read the board).
+  if (GAME) {
+    try {
+      const res = await fetch(`https://api.start.ng/games/${GAME}/leaderboard?limit=${limit}`);
+      if (res.ok) return await res.json();
+    } catch {}
+  }
+  return [];
 }
 
 export function signIn() {
